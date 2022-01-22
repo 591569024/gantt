@@ -4,12 +4,24 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta http-equiv="x-ua-compatible" content="ie=edge">
+	<link rel="icon" href="https://static.jianshukeji.com/hcode/images/favicon.ico">
 	<link rel="stylesheet" type="text/css" href="css/font-awesome.min.css"/>
-<style>#container, #buttonGroup {
+<style>#container, #buttonGroup, #button-container {
 	max-width: 1200px;
 	min-width: 320px;
 	margin: 1em auto;
 }
+
+#pdf {
+	border: 1px solid silver;
+	border-radius: 3px;
+	background: #a4edba;
+	padding: 0.5em 1em;
+}
+#pdf i {
+	margin-right: 1em;
+}
+
 .hidden {
 	display: none;
 }
@@ -62,6 +74,7 @@
 </style>	<script src="js/highcharts-gantt.js"></script>
 	<script src="js/draggable-points.js"></script>
 	<script src="js/exporting.js"></script>
+	<script src="js/highcharts-zh_CN.js"></script>
 </head>
 <body>
 
@@ -75,6 +88,11 @@
 		<button id="btnRemoveSelected" disabled="disabled">
 			<i class="fa fa-remove"></i>
 			Remove selected
+		</button>
+	</div>
+	<div id="button-container">
+		<button id="pdf">
+			<i class="fa fa-download"></i> Download PDF
 		</button>
 	</div>
 	<div id="addTaskDialog" class="hidden overlay">
@@ -222,19 +240,9 @@ function dropmMethod2(points, e) {
 	}
 }
 
-function updateDate(points){
-	let myself = null;
-	points.forEach(p => {
-		if(p.id === e.newPointId) {
-				myself = p
-			}
-		});
-
-	alert(myself.y);
-}
-
 // Create the chart
 var chart = Highcharts.ganttChart('container', {
+
 	chart: {
 		spacingLeft: 1
 	},
@@ -309,7 +317,7 @@ var chart = Highcharts.ganttChart('container', {
 		name: 'Project 1',
 		data: [{
 			start: today + 1 * hour,
-			end: today + hour * 9,
+			end: today + hour * 9,//Date.UTC(2018, 11, 8),
 			name: 'Prototype',
 			id: 'prototype',
 			y: 0
@@ -343,6 +351,12 @@ var chart = Highcharts.ganttChart('container', {
 			y: 2
 		}]
 	}]
+});
+// Activate the custom button
+document.getElementById('pdf').addEventListener('click', function () {
+	Highcharts.charts[0].exportChart({
+		type: 'application/pdf'
+	});
 });
 </script>
 </body>
