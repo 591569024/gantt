@@ -6,8 +6,8 @@
 	<meta http-equiv="x-ua-compatible" content="ie=edge">
 	<link rel="stylesheet" type="text/css" href="https://code.highcharts.com.cn/libs/font-awesome/css/font-awesome.min.css"/>
 <style>#container, #buttonGroup, #button-container {
-	max-width: 1em auto;
-	min-width: 1em auto;
+	max-width: 1314520px;
+	min-width: auto;
 	margin: 1em auto;
 }
 
@@ -239,6 +239,29 @@ function dropmMethod2(points, e) {
 	}
 }
 
+function getColors(points){
+	if (this.colors == undefined){
+		let colors = {};
+		points.forEach(p => {
+			colors[p.y] = p.color
+		});
+		this.colors = colors
+	}
+}
+
+function changeColor(points, e){
+	let id = e.newPointId;
+	if(id) {
+		points.forEach(p => {
+			if(p.id === id) {
+				p.update({
+					color: this.colors[p.y]
+				}, false);
+			}
+		});
+	}
+}
+
 // Create the chart
 var chart = Highcharts.ganttChart('container', {
 
@@ -272,6 +295,9 @@ var chart = Highcharts.ganttChart('container', {
 			allowPointSelect: true,
 			point: {
 				events: {
+					dragStart: function() {
+						getColors(this.series.points)
+					},
 					drag: function(e) {
 						// console.log(e)
 					},
@@ -281,6 +307,7 @@ var chart = Highcharts.ganttChart('container', {
 					 *  2. 叶子节点拖动开始时间小于父节点的结束时间时，子节点开始时间设置为父节点的结束时间
 					 */
 					drop: function(e) {
+						changeColor(this.series.points, e)
 						// 1.
 						dropmMethod1(this.series.points, e)
 						// 2.
