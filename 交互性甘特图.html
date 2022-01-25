@@ -384,6 +384,15 @@ document.getElementById('pdf').addEventListener('click', function () {
 		type: 'application/pdf'
 	});
 });
+let demo = document.getElementById("container");
+
+demo.oncontextmenu = function(e) {
+	e.preventDefault();
+	// 执行代码块
+	if(e.button == "2"){
+		alert("执行右键代码");
+	}
+}
 </script>
 </body>
 </html>
