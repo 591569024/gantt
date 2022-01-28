@@ -131,32 +131,33 @@ function dropmMethod1(points, e){
 
 function dropmMethod2(points, e) {
     let dependency = e.target.options.dependency;
+    let dependencyPoint = null;
     if (dependency) {
-        let dependencyPoint = null;
         points.forEach(p => {
             if (p.id === dependency) {
                 dependencyPoint = p;
             }
         });
-        // selfStart = Highcharts.dateFormat('%Y-%m-%d %H:%M', e.newPoint.start)
-        // selfEnd = Highcharts.dateFormat('%Y-%m-%d %H:%M', e.newPoint.end)//%Y-%m-%d %H:%M:%S
-        if (dependencyPoint && e.newPoint.start < dependencyPoint.end) {
-            let diff = dependencyPoint.end - e.newPoint.start;
-            e.newPoint.start += diff;
-            e.newPoint.end += diff;
-            // fatherStart = Highcharts.dateFormat('%Y-%m-%d %H:%M', e.newPoint.start)
-            // fatherEnd = Highcharts.dateFormat('%Y-%m-%d %H:%M', e.newPoint.end)//%Y-%m-%d %H:%M:%S
+        // alert(this.lens[e.newPointId])
+        if (e.newPoint.start < dependencyPoint.end) {
+            e.newPoint.start =  dependencyPoint.end;
+            e.newPoint.end = dependencyPoint.end + this.lens[e.newPointId]
         }
+        updateLen(points, e)
+
     }
 }
 
-function getColors(points){
+function getColorsAndLens(points){
     if (this.colors == undefined){
         let colors = {};
+        let lens = {};
         points.forEach(p => {
             colors[p.y] = p.color
+            lens[p.id] = p.end - p.start
         });
         this.colors = colors
+        this.lens = lens
     }
 }
 
@@ -173,7 +174,18 @@ function changeColor(points, e){
     }
 }
 
-function whichButton(event){
+function updateLen(points, e){
+    let id = e.newPointId;
+    if(id) {
+        points.forEach(p => {
+            if(p.id === id) {
+                this.lens[p.id] = p.end - p.start
+            }
+        });
+    }
+}
+
+function clickMouseY(event){
     var btnNum = event.button;
     if (btnNum==2){
         document.oncontextmenu = hideSysMenu;//屏蔽鼠标右键
@@ -205,7 +217,7 @@ var chart = Highcharts.ganttChart('container', {
     },
     plotOptions: {
         series: {
-            animation: false, // Do not animate dependency connectors
+            animation: true, // animate dependency connectors
             dragDrop: {
                 draggableX: true,
                 draggableY: true,
@@ -225,8 +237,8 @@ var chart = Highcharts.ganttChart('container', {
             point: {
                 events: {
                     dragStart: function(e) {
-                        whichButton(e)
-                        getColors(this.series.points)
+                        clickMouseY(e)
+                        getColorsAndLens(this.series.points)
                     },
                     drag: function(e) {
                         // console.log(e)
@@ -243,13 +255,19 @@ var chart = Highcharts.ganttChart('container', {
                         // 2.
                         dropmMethod2(this.series.points, e)
 
+
                     }
                 }
             }
         }
     },
     yAxis: {
-        // type: 'category',
+        scrollbar: {
+            enabled: true,
+            showFull: false
+        },
+        type: 'treegrid',
+        //树状结构下的甘特图highcharts还不支持上下拖动，详情：https://github.com/highcharts/highcharts/issues/14400
         // categories: ['Tech', 'Marketing', 'Sales'],
         // min: 0,
         // max: 2
