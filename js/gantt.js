@@ -268,7 +268,7 @@ var chart = Highcharts.ganttChart('container', {
         },
         type: 'treegrid',
         //树状结构下的甘特图highcharts还不支持上下拖动，详情：https://github.com/highcharts/highcharts/issues/14400
-        // categories: ['Tech', 'Marketing', 'Sales'],
+        categories: ['Tech', 'Marketing', 'Sales'],
         // min: 0,
         // max: 2
     },
