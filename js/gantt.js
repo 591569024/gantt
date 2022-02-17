@@ -3,6 +3,9 @@
    custom behavior can be added using event handlers and API calls. See
    http://api.highcharts.com/gantt.
 */
+$(document).contextmenu(function() {
+    return false;
+});
 //创建右键菜单
 var epMenu={
     create:function(point,option){
@@ -27,11 +30,6 @@ var epMenu={
         $(".epMenu").remove();
     }
 };
-
-function sayhello(){
-    alert("hellokity");
-    epMenu.destory();
-}
 
 function destory(){
     epMenu.destory();
@@ -85,16 +83,19 @@ function dealTime(points, childNodes, e, isBegin, current, end){
                         end: p.end+ diff
                     }, false);
                     dealTime(points, childNodes, e, false, p, p.end)
-                    // childStart = Highcharts.dateFormat('%Y-%m-%d %H:%M', p.start + diff)
-                    // childEnd = Highcharts.dateFormat('%Y-%m-%d %H:%M', p.end+ diff)
+                    // childStart = Highcharts.dateFormat('%Y-%m-%d %H:%M', p.start)
+                    // alert(childStart)
+                    // childEnd = Highcharts.dateFormat('%Y-%m-%d %H:%M', p.end)
                 }
             })
         }
         else {
             let childNodes = [];
             points.forEach(p => {
-                if (p.dependency === current.id) {
-                    childNodes.push(p)
+                if (p.dependency){
+                    if (p.dependency.includes(current.id)) {
+                        childNodes.push(p)
+                    }
                 }
             });
             if (childNodes.length) {
@@ -104,8 +105,9 @@ function dealTime(points, childNodes, e, isBegin, current, end){
                             start: end,
                             end: end + (p.end - p.start)
                         }, false);
-                        // childStart = Highcharts.dateFormat('%Y-%m-%d %H:%M', p.start + diff)
-                        // childEnd = Highcharts.dateFormat('%Y-%m-%d %H:%M', p.end+ diff)
+                        // childStart = Highcharts.dateFormat('%Y-%m-%d %H:%M', p.start)
+                        // alert(childStart)
+                        // childEnd = Highcharts.dateFormat('%Y-%m-%d %H:%M', p.end)
                         dealTime(points, childNodes, e, false, p, p.end)
                     }
                 })
@@ -121,10 +123,13 @@ function dropmMethod1(points, e){
     if(id) {
         let childNodes = [];
         points.forEach(p => {
-            if(p.dependency === id) {
-                childNodes.push(p)
+            if(p.dependency){
+                if(p.dependency.includes(id)) {
+                    childNodes.push(p)
+                }
             }
         });
+
         dealTime(points, childNodes, e, true)
     }
 }
@@ -134,11 +139,10 @@ function dropmMethod2(points, e) {
     let dependencyPoint = null;
     if (dependency) {
         points.forEach(p => {
-            if (p.id === dependency) {
+            if (dependency.includes(p.id)) {
                 dependencyPoint = p;
             }
         });
-        // alert(this.lens[e.newPointId])
         if (e.newPoint.start < dependencyPoint.end) {
             e.newPoint.start =  dependencyPoint.end;
             e.newPoint.end = dependencyPoint.end + this.lens[e.newPointId]
@@ -156,7 +160,7 @@ function getColorsAndLens(points){
             colors[p.y] = p.color
             lens[p.id] = p.end - p.start
         });
-        this.colors = colors
+        window.colors = colors
         this.lens = lens
     }
 }
@@ -166,9 +170,13 @@ function changeColor(points, e){
     if(id) {
         points.forEach(p => {
             if(p.id === id) {
-                p.update({
-                    color: this.colors[p.y]
-                }, false);
+                var dragY = p.dragDrop.draggableY;
+                var dragX = p.dragDrop.draggableX;
+                if(dragX && dragY){
+                    p.update({
+                        color: this.colors[p.y]
+                    }, false);
+                }
             }
         });
     }
@@ -185,18 +193,63 @@ function updateLen(points, e){
     }
 }
 
-function clickMouseY(event){
+function clickMouseY(event, thisPoint){
     var btnNum = event.button;
     if (btnNum==2){
+        // 固定设备
+        var fixEquip = function() {
+            console.log(thisPoint)
+            thisPoint.update({
+                dragDrop:{draggableY: false},
+                color: "#EA0000"
+            }, true);
+            epMenu.destory();
+        }
+
+        // 固定时间
+        var fixTime = function() {
+            thisPoint.update({
+                dragDrop:{draggableX: false},
+                color: "#EA0000"
+            }, true);
+            epMenu.destory();
+        }
+
+        // 解除固定
+        var reliveFix = function() {
+            console.log(this.colors)
+            // 使得固定的设备可以上下，左右修改
+            thisPoint.update({
+                dragDrop:{
+                    draggableX: true,
+                    draggableY: true
+                },
+                color: window.colors[thisPoint.y]
+            }, true);
+            epMenu.destory();
+        }
+
+
+        // 固定设备和时间
+        var fixTimeAndEquip = function() {
+            thisPoint.update({
+                dragDrop:{
+                    draggableX: false,
+                    draggableY: false
+                },
+                color: "#EA0000"
+            }, true);
+            epMenu.destory();
+        }
         document.oncontextmenu = hideSysMenu;//屏蔽鼠标右键
         var evt = window.event || arguments[0];
         var rightedge = evt.clientX;
         var bottomedge = evt.clientY;
         epMenu.create({left:rightedge,top:bottomedge},[
-            {name:'功能菜单','action':sayhello},
-            {name:'功能菜单','action':sayhello},
-            {name:'功能菜单','action':sayhello},
-            {name:'功能菜单','action':sayhello},
+            {name:'固定设备','action':fixEquip},
+            {name:'固定时间','action':fixTime},
+            {name:'解除固定','action':reliveFix},
+            {name:'固定设备和时间','action':fixTimeAndEquip},
             {name:'退出','action':destory}]);
         window.onclick=function(e){
             epMenu.destory();
@@ -204,10 +257,11 @@ function clickMouseY(event){
     }
 }
 
+
 // Create the chart
 var chart = Highcharts.ganttChart('container', {
     chart: {
-        spacingLeft: 1
+        spacingLeft: 1,
     },
     title: {
         text: 'Interactive Gantt Chart'
@@ -215,8 +269,14 @@ var chart = Highcharts.ganttChart('container', {
     subtitle: {
         text: 'Drag and drop points to edit'
     },
+
     plotOptions: {
         series: {
+            // events: {
+            //     mousedown: function (e) {
+            //         clickMouseY(e, this);
+            //     },
+            // },
             animation: true, // animate dependency connectors
             dragDrop: {
                 draggableX: true,
@@ -236,8 +296,19 @@ var chart = Highcharts.ganttChart('container', {
             allowPointSelect: false,
             point: {
                 events: {
+                    contextmenu: function(event) {
+                        // console.log(window.colors)
+                        clickMouseY(event, this);
+                        if (document.all) {
+                            window.event.returnValue = false;
+                        }// for IE
+                        else {
+                            event.preventDefault();
+                        }
+                    },
+
                     dragStart: function(e) {
-                        clickMouseY(e)
+                        // clickMouseY(e, this)
                         getColorsAndLens(this.series.points)
                     },
                     drag: function(e) {
@@ -254,9 +325,10 @@ var chart = Highcharts.ganttChart('container', {
                         dropmMethod1(this.series.points, e)
                         // 2.
                         dropmMethod2(this.series.points, e)
+                    },
 
 
-                    }
+
                 }
             }
         }
@@ -291,43 +363,152 @@ var chart = Highcharts.ganttChart('container', {
     },
     series: [{
         name: 'Project 1',
-        data: [{
-            start: today + 1 * hour,
-            end: today + hour * 9,//Date.UTC(2018, 11, 8),
-            name: 'Prototype',
-            id: 'prototype',
-            y: 0
-        },  {
-            start: today + hour * 10,
-            end: today + hour * 30,
-            name: 'Prototype done',
-            parent: 'prototype',
-            dependency: 'prototype',
-            id: 'proto_done',
-            y: 0
-        },{
-            start: today + 40 * hour,
-            end: today + hour * 70,
-            name: 'test',
-            id: 'test',
-            parent: 'prototype',
-            dependency: 'proto_done',
-            y: 2
-        },  {
-            start: today + hour * 80,
-            end: today + hour * 100,
-            name: 'test done',
-            id: 'test_done',
-            y: 1
-        },  {
-            start: today + hour * 120,
-            end: today + hour * 200,
-            name: 'test done1',
-            parent: 'test_done',
-            dependency: 'test_done',
-            id: 'test_done1',
-            y: 2
-        }]
+        data: [
+            {
+                "start": 1643700469000,
+                "end": 1643786869000,
+                "name": null,
+                "id": "1493478671917273090",
+                "y": 0,
+                "resourceId": "1470658948301414402",
+                "dragDrop": {
+                    "draggableX": true,
+                    "draggableY": true
+                }
+            },
+            {
+                "start": 1645428469000,
+                "end": 1645428469000,
+                "name": null,
+                "id": "1493479024666628098",
+                "y": 0,
+                "resourceId": "1470658948301414402",
+                "dragDrop": {
+                    "draggableX": true,
+                    "draggableY": true
+                }
+            },
+            {
+                "start": 1645169269000,
+                "end": 1645255669000,
+                "name": null,
+                "id": "1493478833733521409",
+                "y": 2,
+                "resourceId": "1470659127385612289",
+                "dragDrop": {
+                    "draggableX": true,
+                    "draggableY": true
+                }
+            },
+            {
+                "start": 1645774069000,
+                "end": 1645860469000,
+                "name": "1493479400266551297",
+                "id": "1493479400266551297",
+                "y": 0,
+                "dependency": [
+                    "1493478671917273090",
+                    "1493478833733521409",
+                    "1493479232687329282"
+                ],
+                "resourceId": "1470658948301414402",
+                "dragDrop": {
+                    "draggableX": true,
+                    "draggableY": true
+                }
+            },
+            {
+                "start": 1646281669000,
+                "end": 1646897269000,
+                "name": "1493479781054828545",
+                "id": "1493479781054828545",
+                "y": 0,
+                "dependency": [
+                    "1493479631498530817"
+                ],
+                "resourceId": "1470658948301414402",
+                "dragDrop": {
+                    "draggableX": true,
+                    "draggableY": true
+                }
+            },
+            {
+                "start": 1650526069000,
+                "end": 1650612469000,
+                "name": "1493480226141786113",
+                "id": "1493480226141786113",
+                "y": 0,
+                "dependency": [
+                    "1493480107044524033"
+                ],
+                "resourceId": "1470658948301414402",
+                "dragDrop": {
+                    "draggableX": true,
+                    "draggableY": true
+                }
+            },
+            {
+                "start": 1647502069000,
+                "end": 1647588469000,
+                "name": "1493479915771678722",
+                "id": "1493479915771678722",
+                "y": 1,
+                "dependency": [
+                    "1493479781054828545"
+                ],
+                "resourceId": "1472805452449341442",
+                "dragDrop": {
+                    "draggableX": true,
+                    "draggableY": true
+                }
+            },
+            {
+                "start": 1649230069000,
+                "end": 1649316469000,
+                "name": "1493480107044524033",
+                "id": "1493480107044524033",
+                "y": 1,
+                "dependency": [
+                    "1493479915771678722"
+                ],
+                "resourceId": "1472805452449341442",
+                "dragDrop": {
+                    "draggableX": true,
+                    "draggableY": true
+                }
+            },
+            {
+                "start": 1645601269000,
+                "end": 1645687669000,
+                "name": "1493479232687329282",
+                "id": "1493479232687329282",
+                "y": 2,
+                "dependency": [
+                    "1493479024666628098"
+                ],
+                "resourceId": "1470659127385612289",
+                "dragDrop": {
+                    "draggableX": true,
+                    "draggableY": true
+                }
+            },
+            {
+                "start": 1645946869000,
+                "end": 1646033269000,
+                "name": "1493479631498530817",
+                "id": "1493479631498530817",
+                "y": 2,
+                "dependency": [
+                    "1493478833733521409",
+                    "1493479400266551297"
+                ],
+                "resourceId": "1470659127385612289",
+                "dragDrop": {
+                    "draggableX": true,
+                    "draggableY": true
+                }
+            }
+        ]
     }]
 });
 
